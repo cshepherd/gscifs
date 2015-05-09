@@ -1,3 +1,7 @@
+CIFS / SMB2 navel gazing, in 65816 assembly.
+
+Build 'CMD.S' with Merlin32 and the included Library directory.
+
 Whatever, play along, but no apologies for lack of optimization and style yet. You'll see I don't dynamically allocate some things I should. At the moment I'm more interested in digging through tcpdumps and making things act right.
 
 You'll see I'm just trying to copy the 'libtinysmb' portion of libogc from the Nintendo Wii because it's pretty easy to follow. It is in the 'reference' folder for you to check out. Also if you haven't yet, read all of http://www.ubiqx.org/cifs/SMB.html ... There, now you know exactly as much as me (probably more, I'm old and I forget things, I've probably forgotten it already).
@@ -9,4 +13,6 @@ As you can see, the hope here is to make 'SMBDEMO' S16 program connect to a CIFS
 I mostly only hack on weekends, but can test and merge all week long.
 
 If this is not your style, fork it or start over, but at least try.
+
+Oh and the .AppleDouble files are because I build to an AppleShare target. Then I boot up the IIGS and double-click to run it. Just think, someday we won't need that.
 
