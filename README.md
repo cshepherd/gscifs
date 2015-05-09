@@ -1,5 +1,7 @@
 CIFS / SMB2 navel gazing, in 65816 assembly.
 
+5/9/2015 - Current status: Connects on port 445, sends valid SMB Protocol Negotiation message, accepts and analyzes reply. Next step: Login, mount a share, read a file.
+
 Build 'CMD.S' with Merlin32 and the included Library directory.
 
 Whatever, play along, but no apologies for lack of optimization and style yet. You'll see I don't dynamically allocate some things I should. At the moment I'm more interested in digging through tcpdumps and making things act right.
