@@ -636,8 +636,10 @@ sendloop2		PushWord #0000
 				pla
 				cmp #2
 				bne noevent3
-				bra CTSClose3
-noevent3		jsr SMB_Negotiate_Poll
+
+noevent3		PushLong MySMBHandle
+				jsr SMB_Negotiate_Poll
+				pla						; get negotiation status
 				bcc sendloop2
 
 login			PushLong CTSWinPtr
@@ -645,7 +647,7 @@ login			PushLong CTSWinPtr
 				PushLong #CTSTextB
 				_SetIText
 
-				jmp SMB_staging_brk		; die so we can inspect things
+				jmp SMB_input_brk		; die so we can inspect things
 
 closed			PushLong CTSWinPtr
 				PushWord #1350
@@ -1082,6 +1084,7 @@ SMB_dialect			asc 02'NT LM 0.12'00		; the only dialect we're gonna speak
 *  also SMB_max_transmit size should go up to 65535 and use an allocated bank like Marinetti does
 SMB_staging_brk		brk 00						; jump here to crash somewhere where you can easily inspect the generated SMB datagram
 SMB_staging			ds SMB_max_transmit_size+2
+SMB_input_brk		brk 00
 SMB_input			ds SMB_max_net_read_size	; TODO Memory Manage this eh
 
 *
@@ -1164,6 +1167,8 @@ SMB_Negotiate_Poll
 				PullLong SMB_sessid			; your smb sessid
 				phx
 
+				_TCPIPPoll
+
 				PushWord #0000				; space for result
 				ldy #SMB_sess_ipid-SMB_sess_begin
 				lda [SMB_sessid],y
@@ -1188,16 +1193,17 @@ SMB_Negotiate_Poll
 				PushLong #SMB_max_net_read_size
 				PushLong #readbuf
 				_TCPIPReadTCP
+
 				pla
 				cmp #terrNOCONNECTION
 				beq nf_trampoline
 				cmp #terrBADIPID
 				beq nf_trampoline
-				
+								
 				jsr _SMB_Check				; do basic check to make sure we received SMB data
 				bcs np_trampoline			; if not, wait for them to send again i guess
 				
-				lda SMB_input+SMB_offset_cmd
+`				lda SMB_input+SMB_offset_cmd
 				cmp #SMB_neg_protocol
 				bne np_trampoline			; punt if not protocol negotiation reply
 				
@@ -1221,35 +1227,35 @@ nf_trampoline	jmp nego_failed
 np_trampoline	jmp nego_proceeding
 nft_far
 				
-				lda SMB_input+SMB_header_size+2
+				lda SMB_input+SMB_header_size+3
 				and #$01
 				ldy #SMB_sess_seclvl-SMB_sess_begin
 				sta [SMB_sessid],y			; save session security level (1=user level, 0=share level)
-				
-				lda SMB_input+SMB_header_size+3
+
+				lda SMB_input+SMB_header_size+4
 				and #$ff
 				ldy #SMB_sess_maxmpx-SMB_sess_begin
 				sta [SMB_sessid],y			; save session MaxMPX
 				
-				lda SMB_input+SMB_header_size+5
+				lda SMB_input+SMB_header_size+6
 				and #$ff
 				ldy #SMB_sess_maxvcs-SMB_sess_begin
 				sta [SMB_sessid],y			; save session MaxVCS
 				
-				lda SMB_input+SMB_header_size+7
+				lda SMB_input+SMB_header_size+8
 				ldy #SMB_sess_maxbuffer-SMB_sess_begin
 				sta [SMB_sessid],y			; save session maxbuffer
-				
-				lda SMB_input+SMB_header_size+15
+								
+				lda SMB_input+SMB_header_size+16
 				ldy #SMB_sess_skey-SMB_sess_begin
 				sta [SMB_sessid],y			; save skey
 				
-				lda SMB_input+SMB_header_size+19
+				lda SMB_input+SMB_header_size+20
 				ldy #SMB_sess_caps-SMB_sess_begin
 				sta [SMB_sessid],y
 				iny
 				iny
-				lda SMB_input+SMB_header_size+21
+				lda SMB_input+SMB_header_size+22
 				sta [SMB_sessid],y			; save server capabilities
 
 				; TODO serverTime
@@ -1287,7 +1293,7 @@ challenge_used	lda #$0001
 
 getdomain		ldy #SMB_sess_domain-SMB_sess_begin
 				ldx #00
-gdloop			lda SMB_input+SMB_header_size+50,x
+gdloop			lda SMB_input+SMB_header_size+45,x
 				and #$ff00
 				xba
 				cmp #0000
@@ -1323,12 +1329,13 @@ nego_proceeding	plx							; our return address
 *
 
 * _SMB_Check - Check to see if TCP received data is SMB
-_SMB_Check		lda SMB_input
+_SMB_Check		lda SMB_input+SMB_offset_proto
 				cmp #SMB_proto1
 				bne check_inv
-				lda SMB_staging+2
+				lda SMB_input+SMB_offset_proto+2
 				cmp #SMB_proto2
 				bne check_inv					; starts with 'SMB'\ff
+				clc
 				rts
 check_inv		sec
 				rts
