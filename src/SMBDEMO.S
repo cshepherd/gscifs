@@ -1078,6 +1078,8 @@ SMB_sess_domain		ds 32					; sloppy 32 byte buffer to hold SMB domain
 
 * Strings
 SMB_dialect			asc 02'NT LM 0.12'00		; the only dialect we're gonna speak
+SMB_os				asc 'GS/OS'00				; native Operating System
+SMB_lanman			asc 'Apple IIgs'00			; native LAN Manager
 
 * SMB packet staging area
 * TODO these will probably be dynamically allocated too?
@@ -1325,7 +1327,290 @@ nego_proceeding	plx							; our return address
 				rts
 
 *
-* SMB internal subroutines
+* SMB_SetupAndX - Next step after negotiating protocol, includes authentication
+* Arguments:
+*    SMB session handle (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_SetupAndX	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_setup_ANDX	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_TreeAndX - Connect to the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_TreeAndX	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_treec_ANDX	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_OpenFile - Open a file on the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to filename (two words, on stack)
+*    Access flags (one word, on stack)
+*    Creation flags (one word, on stack)
+* Things I return on stack:
+*    A = SMB filehandle id
+*    Carry flag set if error
+SMB_OpenFile	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_open_ANDX		; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_CloseFile - Close an open file on the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    A = SMB filehandle id
+* Things I return on stack:
+*    Carry flag set if error
+SMB_CloseFile	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_close			; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_CreateDirectory - Create a directory on the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to filename (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_CreateDirectory
+				plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_COM_create_directory	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_DeleteDirectory - Delete a directory on the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to filename (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_DeleteDirectory
+				plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_COM_delete_directory	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_DeleteFile - Delete a file on the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to filename (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_DeleteFile	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_COM_delete	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_RenameFile - Rename a file on the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to old filename (two words, on stack)
+*    Long pointer to new filename (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_RenameFile	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_COM_rename	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_DiskInformation - Get information about the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to disk statbuf (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_DiskInformation
+				plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_COM_query_information_disk	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_ReadFile - Read an open file from the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to read buffer (two words, on stack)
+*    Size of read buffer (two words, on stack)
+*    Offset into file (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_ReadFile	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_read_ANDX		; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_WriteFile - Write to an open file from the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to data buffer (two words, on stack)
+*    Size of data buffer (two words, on stack)
+*    Offset into file (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_WriteFile	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_write_ANDX	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_PathInfo - Get information about a file/path on the remote share
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to pathname (two words, on stack)
+*    Long pointer to smb direntry struct buffer (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+SMB_PathInfo	plx							; return address
+				PullLong SMB_sessid
+				phx							; saved return address
+
+				PushWord #SMB_query_path_info	; command
+				PushWord #CIFS_flags1		; flags1
+				PushWord #CIFS_flags2		; flags2
+				jsr _InitSMBHeader			; make an SMB header with this information
+
+* TODO
+
+				rts
+
+*
+* SMB_FindFirst - Find first file in a directory listing
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to pathname (two words, on stack)
+*    Flags (one word, on stack)
+*    Long pointer to smb direntry struct buffer (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+
+* TODO TRANS2 call
+
+*
+* SMB_FindNext - Find next file in a directory listing
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to smb direntry struct buffer (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+
+* TODO TRANS2 call
+
+*
+* SMB_FindClose - Close a directory listing
+* Arguments:
+*    SMB session handle (two words, on stack)
+*    Long pointer to smb direntry struct buffer (two words, on stack)
+* Things I return on stack:
+*    Carry flag set if error
+
+* TODO TRANS2 call
+
+
+*
+* Internal subroutines for SMB stuff
 *
 
 * _SMB_Check - Check to see if TCP received data is SMB
