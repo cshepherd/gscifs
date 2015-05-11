@@ -1341,9 +1341,133 @@ SMB_SetupAndX	plx							; return address
 				PushWord #CIFS_flags2		; flags2
 				jsr _InitSMBHeader			; make an SMB header with this information
 
-* TODO
+				sep $30
+				lda #13
+				sta SMB_staging+SMB_header_size	; word count
+				
+				lda #$ff
+				sta SMB_staging+SMB_header_size+1	; next AndX
+				
+				lda #00
+				sta SMB_staging+SMB_header_size+2	; reserved
+				rep $30
+				
+				ldy #SMB_sess_maxbuffer-SMB_sess_begin
+				lda [SMB_sessid],y
+				sta SMB_staging+SMB_header_size+3	; max buffer size
+				
+				ldy #SMB_sess_maxmpx-SMB_sess_begin
+				lda [SMB_sessid],y
+				sta SMB_staging+SMB_header_size+5	; max MPX
+				
+				ldy #SMB_sess_maxvcs-SMB_sess_begin
+				lda [SMB_sessid],y
+				sta SMB_staging+SMB_header_size+7	; max VCS
+				
+				ldy #SMB_sess_skey-SMB_sess_begin
+				lda [SMB_sessid],y
+				sta SMB_staging+SMB_header_size+9	; session key
+				lda #0
+				sta SMB_staging+SMB_header_size+11	; session key (upper, should always be zero?)
+				
+				lda #24
+				sta SMB_staging+SMB_header_size+13	; password length (case insensitive)
+				
+				lda #24
+				sta SMB_staging+SMB_header_size+15	; password length (case sensitive)
+				
+				lda #0
+				sta SMB_staging+SMB_header_size+17	; reserved
+				sta SMB_staging+SMB_header_size+19	; reserved
+				
+				ldy #SMB_sess_caps-SMB_sess_begin
+				lda [SMB_sessid],y
+				sta SMB_staging+SMB_header_size+21
+				iny
+				iny
+				lda [SMB_sessid],y
+				sta SMB_staging+SMB_header_size+23	; session capabilities
+				
+* TODO copy username, password, native os, native lanmanager, update byte count, send result
 
+				jsr _SMB_Send
+				clc
 				rts
+
+* SMB_Setup_Poll - Call me until I tell you to stop, to receive and complete SMB setup
+* Arguments:
+*   SMB session handle (two words, on stock)
+* Things I return on stack:
+*   Setup status (word)
+*     $0000 - Setup proceeding
+*     $0001 - Setup finished
+*     $0002 - Setup failed
+*   Carry flag set means you can stop calling me
+SMB_Setup_Poll
+				plx							; our return address
+				PullLong SMB_sessid			; your smb sessid
+				phx
+
+				_TCPIPPoll
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushLong #statbuf
+				_TCPIPStatusTCP				; see if marinetti has anything for us
+				pla
+				cmp #terrNOCONNECTION
+				beq sf_trampoline
+				cmp #terrBADIPID
+				beq sf_trampoline
+				lda statbuf+8				; get recvq size, low word
+				cmp #0000					; yeah i know. for clarity.
+				beq sp_trampoline			; poll us again later, marinetti got nothing
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushWord #0000				; bufftype: static pre-allocated buffer
+				PushLong #SMB_input			; where it's all goin
+				PushLong #SMB_max_net_read_size
+				PushLong #readbuf
+				_TCPIPReadTCP
+
+				pla
+				cmp #terrNOCONNECTION
+				beq sf_trampoline
+				cmp #terrBADIPID
+				beq sf_trampoline
+								
+				jsr _SMB_Check				; do basic check to make sure we received SMB data
+				bcs sp_trampoline			; if not, wait for them to send again i guess
+
+				bra sft_far
+sf_trampoline	jmp setup_failed
+sp_trampoline	jmp setup_proceeding
+sft_far
+
+setup_finished	plx							; our return address
+				PushWord #0001				; finished!
+				phx
+				sec
+				rts
+
+setup_failed	plx							; our return address
+				PushWord #0002				; failure
+				phx
+				sec
+				rts
+
+setup_proceeding
+				plx							; our return address
+				PushWord #0000				; in progress
+				phx
+				clc
+				rts
+
 
 *
 * SMB_TreeAndX - Connect to the remote share
