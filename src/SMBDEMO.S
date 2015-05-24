@@ -6,6 +6,7 @@
 * Friday, May 1, 2015      - Ported more code to Merlin32, set up Merlin32 equates
 * Saturday, May 2, 2015    - Formatting fixes, refactoring, rewritten SMB Negotiation code
 * Saturday, May 9, 2015    - Receive and interpret NEG_PROT reply and start login
+* Sunday, May 24, 2015     - Some bugfixes, Tool128 and Tool129 requirement for hashing and DES, LM password hashing support
 *
 * REFERENCES
 * smb.c / smb.h from libOGC
@@ -91,7 +92,7 @@ StartUpTools 	_TLStartUp
 
 				pha
 				pha
-				PushLong #$800		; 8 pages of DP space
+				PushLong #$900		; 9 pages of DP space
 				PushWord AppMMID
 				PushWord #$C005		; Fixed, Page-Aligned, Locked, Unpurgeable
 				PushLong #$000000	; in Bank $00, $0000
@@ -185,11 +186,21 @@ StartUpTools 	_TLStartUp
 				clc
 				adc #$100
 				pha
+				pha
 				_SoundStartUp
 				jsr CheckError
 
 				_TCPIPStartUp
 				jsr CheckError
+				
+				Tool $280			; HashStartUp
+				jsr CheckError
+				
+				pla
+				clc
+				adc #$100
+				pha
+				Tool $281			; CryptoStartUp
 
 				rts
 
@@ -636,6 +647,13 @@ sendloop2		PushWord #0000
 				pla
 				cmp #2
 				bne noevent3
+				PushWord #0000			; space for result
+				PushLong #00000000		; nil filter procedure
+				_ModalDialog
+				pla
+				cmp #2
+				bne noevent3
+				jmp CTSClose3
 
 noevent3		PushLong MySMBHandle
 				jsr SMB_Negotiate_Poll
@@ -647,7 +665,31 @@ login			PushLong CTSWinPtr
 				PushLong #CTSTextB
 				_SetIText
 
-				jmp SMB_input_brk		; die so we can inspect things
+				PushLong MySMBHandle
+				jsr SMB_SetupAndX
+
+sendloop3		PushWord #0000
+				PushWord #$0006
+				PushLong #EventRec
+				_EventAvail
+				pla
+				beq noevent4
+				PushWord #0000
+				PushLong #00000000
+				_ModalDialog
+				pla
+				cmp #2
+				bne noevent4
+				PushWord #0000			; space for result
+				PushLong #00000000		; nil filter procedure
+				_ModalDialog
+				pla
+				cmp #2
+				bne noevent4
+				jmp SMB_staging_brk
+
+noevent4		_TCPIPPoll
+				bra sendloop3
 
 closed			PushLong CTSWinPtr
 				PushWord #1350
@@ -717,7 +759,7 @@ readbuf			ds 4				; rrBuffCount
 *
 * Tool List
 *
-ToolList     	dw 13				; Tool Count
+ToolList     	dw 15				; Tool Count
 				dw 01,00			; Tool Locator, any vers
 				dw 02,00			; Memory Manager, any vers
 				dw 03,00			; Misc Tools, any vers
@@ -731,6 +773,8 @@ ToolList     	dw 13				; Tool Count
 				dw 20,00			; Line Edit, any vers
 				dw 21,00			; Dialog Manager, any vers
 				dw 54,00			; Marinetti, any vers
+				dw 128,00			; HashTool, any vers (MD2/MD4/MD5/SHA1 hashing for NTLMv2)
+				dw 129,00			; Crypto tool, any vers (DES for NTLMv1)
 ToolListEnd
 
 *
@@ -1083,6 +1127,11 @@ SMB_sess_domain		ds 32					; sloppy 32 byte buffer to hold SMB domain
 SMB_dialect			asc 02'NT LM 0.12'00		; the only dialect we're gonna speak
 SMB_os				asc 'GS/OS'00				; native Operating System
 SMB_lanman			asc 'Apple IIgs'00			; native LAN Manager
+SMB_lm_username		asc 'PI'00,00,00,00,00,00,00,00,00,00,00,00 ; lanman hash login username
+SMB_lm_password		asc 'APPLE2'00,00,00,00,00,00,00,00 ; lanman hash login password
+SMB_lm_magic		asc 'KGS!@#$%'				; lanman hash magic DES crypt string
+SMB_lm_hash			ds 21						; LM Hash, actually 16 bytes but the extra zeroes make response easier to generate
+SMB_lm_response		ds 24						; LM Response
 
 * SMB packet staging area
 * TODO these will probably be dynamically allocated too?
@@ -1356,45 +1405,223 @@ SMB_SetupAndX	plx							; return address
 				
 				ldy #SMB_sess_maxbuffer-SMB_sess_begin
 				lda [SMB_sessid],y
-				sta SMB_staging+SMB_header_size+3	; max buffer size
+				sta SMB_staging+SMB_header_size+5	; max buffer size
 				
 				ldy #SMB_sess_maxmpx-SMB_sess_begin
 				lda [SMB_sessid],y
-				sta SMB_staging+SMB_header_size+5	; max MPX
+				sta SMB_staging+SMB_header_size+7	; max MPX
 				
 				ldy #SMB_sess_maxvcs-SMB_sess_begin
 				lda [SMB_sessid],y
-				sta SMB_staging+SMB_header_size+7	; max VCS
+				sta SMB_staging+SMB_header_size+9	; max VCS
 				
 				ldy #SMB_sess_skey-SMB_sess_begin
 				lda [SMB_sessid],y
-				sta SMB_staging+SMB_header_size+9	; session key
+				sta SMB_staging+SMB_header_size+11	; session key
 				lda #0
-				sta SMB_staging+SMB_header_size+11	; session key (upper, should always be zero?)
+				sta SMB_staging+SMB_header_size+13	; session key (upper, should always be zero?)
 				
 				lda #24
-				sta SMB_staging+SMB_header_size+13	; password length (case insensitive)
-				
-				lda #24
-				sta SMB_staging+SMB_header_size+15	; password length (case sensitive)
+				sta SMB_staging+SMB_header_size+15	; password length (case insensitive)
 				
 				lda #0
-				sta SMB_staging+SMB_header_size+17	; reserved
+				sta SMB_staging+SMB_header_size+17	; password length (case sensitive/NTLM)
+				
+				lda #0
 				sta SMB_staging+SMB_header_size+19	; reserved
+				sta SMB_staging+SMB_header_size+21	; reserved
 				
 				ldy #SMB_sess_caps-SMB_sess_begin
 				lda [SMB_sessid],y
-				sta SMB_staging+SMB_header_size+21
+				sta SMB_staging+SMB_header_size+23
 				iny
 				iny
 				lda [SMB_sessid],y
-				sta SMB_staging+SMB_header_size+23	; session capabilities
+				sta SMB_staging+SMB_header_size+25	; session capabilities
 				
+				jsr SMB_LM_Hash					; generate NTLMv1 Hash
+				jsr SMB_LM_Response				; generate NTLMv1 Response
 				
+				lda #0
+				sta SMB_tmp5					; initialize pointer
 				
-* TODO copy username, password, native os, native lanmanager, update byte count, send result
+				; Case Insensitive Password (LM Response)
+				PushLong #SMB_lm_response					; source
+				pea #^SMB_staging
+				lda #SMB_staging+SMB_header_size+29
+				clc
+				adc SMB_tmp5
+				pha
+				ldx #24
+				jsr _strncpy
+				lda #24
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+				
+				; Case Sensitive Password (NTLM Response)
+				clc
+				adc #24
+				sta SMB_tmp5								; skip it / zero it for now
+				
+				; Account
+				PushLong #SMB_lm_username					; source
+				pea #^SMB_staging							; destination
+				lda #SMB_staging+SMB_header_size+29
+				clc
+				adc SMB_tmp5
+				pha
+				jsr _strcpy
+				tya
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+				
+				; Domain
+				PushLong #SMB_sess_domain					; source
+				pea #^SMB_staging							; destination
+				lda #SMB_staging+SMB_header_size+29
+				clc
+				adc SMB_tmp5
+				pha
+				jsr _strcpy
+				tya
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+				
+				; OS
+				PushLong #SMB_os							; source
+				pea #^SMB_staging							; destination
+				lda #SMB_staging+SMB_header_size+29
+				clc
+				adc SMB_tmp5
+				pha
+				jsr _strcpy
+				tya
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+				
+				; LanMan
+				PushLong #SMB_lanman
+				pea #^SMB_staging							; destination
+				lda #SMB_staging+SMB_header_size+29
+				clc
+				adc SMB_tmp5
+				pha
+				jsr _strcpy
+				tya
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+				
+				sta SMB_staging+SMB_header_size+27		; update byte count
+				
+				clc
+				adc #SMB_header_size+29
+				pha							; 'length' parameter for _SMB_Send
+				dec
+				dec
+				dec
+				dec
+				xba
+				sta SMB_staging+SMB_offset_tcplength+1			; save length for naked-TCP dgram
 
-				jsr _SMB_Send
+				jsr _SMB_Send							; send our reply!
+				clc
+				rts
+
+* SMB_LM_Hash - operate on the SMB_lm_username and SMB_lm_password values to produce
+* SMB_lm_hash, using V1 DES-based operation. Requires TOOL129 (Crypto Tool)
+*
+* The password has been uppercased and chopped to 14 bytes, with 0x00 padding
+* We take it in two 7-byte pieces, add parity, and use each piece to DES-encrypt the string
+* 'KGS!@#$%'. The result is the LM hash.
+SMB_LM_Hash		PushLong #SMB_tmp1					; SMB_tmp1 will have our parity-enhanced key
+				PushLong #SMB_lm_password			; key to add parity to
+				Tool $0A81							; DESAddParity
+
+				PushLong #SMB_lm_hash				; where DES-encrypted data will go
+				PushLong #SMB_tmp1					; parity-enhanced key
+				PushLong #SMB_lm_magic				; the magic string we're encrypting
+				PushWord #0000						; operation: encrypt
+				Tool $0981							; DESCipher
+
+				; now do the same thing with the second 7 bytes of the password
+
+				PushLong #SMB_tmp1
+				PushLong #SMB_lm_password+7
+				Tool $0A81							; DesAddParity
+
+				PushLong #SMB_lm_hash+8
+				PushLong #SMB_tmp1
+				PushLong #SMB_lm_magic
+				PushWord #0000
+				Tool $0981
+
+				; SMB_lm_hash should now contain the NTLMv1 hash of the password
+				clc
+				rts
+
+* SMB_LM_Response - operate on SMB_lm_hash and 8-byte challenge to produce
+* SMB_lm_response, using V1 DES-based operation. Requires TOOL129 (Crypto Tool)
+*
+* LM Hash is padded out to 21 bytes, each of which gets parity added and is
+* used to DES encrypt the session challenge. The result is the LM response.
+SMB_LM_Response
+				PushLong #SMB_tmp1				; SMB_tmp1 will have our parity-enhanced key
+				PushLong #SMB_lm_hash			; key to add parity to
+				Tool $0A81						; DESAddParity
+				
+				PushLong #SMB_lm_response		; where the DES-encrypted data will go
+				PushLong #SMB_tmp1				; parity-enhanced key
+				ldy #SMB_sess_challenge-SMB_sess_begin
+				lda [SMB_sessid],y				; PushLong [SMB_sessid],y
+				pha
+				iny
+				iny
+				lda [SMB_sessid],y
+				pha
+				PushWord #0000					; operation: encrypt
+				Tool $0981						; DESCipher
+				
+				; second 7 bytes of hash
+				
+				PushLong #SMB_tmp1
+				PushLong #SMB_lm_hash+7
+				Tool $0A81						; DESAddParity
+				
+				PushLong #SMB_lm_response+8
+				PushLong #SMB_tmp1
+				ldy #SMB_sess_challenge-SMB_sess_begin
+				lda [SMB_sessid],y				; PushLong [SMB_sessid],y
+				pha
+				iny
+				iny
+				lda [SMB_sessid],y
+				pha
+				PushWord #0000
+				Tool $0981						; DESCipher
+				
+				; third 7 bytes of hash
+				
+				PushLong #SMB_tmp1
+				PushLong #SMB_lm_hash+14
+				Tool $0A81						; DesAddParity
+				
+				PushLong #SMB_lm_response+16
+				PushLong #SMB_tmp1
+				ldy #SMB_sess_challenge-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha
+				iny
+				iny
+				lda [SMB_sessid],y
+				pha
+				PushWord #0000
+				Tool $0981						; DESCipher
+				
 				clc
 				rts
 
@@ -1762,7 +1989,33 @@ _sclp			lda [SMB_tmp3],y
 				bra _sclp
 _scrt			rep #$30
 				mx %00
+				iny
 				rts				
+
+* _strncpy - Copy a string somewhere, only n bytes
+* Arguments:
+*    Pointer to source (two words, on stack)
+*    Pointer to destination (two words, on stack)
+*    X = number of bytes to copy
+_strncpy		txy
+				plx
+				PullLong SMB_tmp1	; Destination
+				PullLong SMB_tmp3	; Source
+				phx
+				tyx
+				ldy #00
+				sep #$30
+				mx %11
+_snclp			lda [SMB_tmp3],y
+				sta [SMB_tmp1],y
+				dex
+				cpx #00
+				beq _sncrt
+				iny
+				bra _snclp
+_sncrt			rep #$30
+				mx %00
+				rts	
 
 * _SMB_Check - Check to see if TCP received data is SMB
 _SMB_Check		lda SMB_input+SMB_offset_proto

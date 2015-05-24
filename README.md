@@ -1,6 +1,7 @@
 CIFS / SMB2 navel gazing, in 65816 assembly.
 
 5/9/2015 - Current status: Connects on port 445, sends valid SMB Protocol Negotiation message, accepts and analyzes reply. Next step: Login, mount a share, read a file.
+5/24/2015 - Current status: Connects on port 445, completes Protocol Negotiation, successfully sends login (on Setup_ANDX message), obsolete LM (DES) style password
 
 Build 'CMD.S' with Merlin32 and the included Library directory.
 
