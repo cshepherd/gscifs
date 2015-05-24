@@ -1057,6 +1057,9 @@ SMB_deny_none		= $40
 SMB_sessid			= 8
 SMB_tmp1			= 12
 SMB_tmp2			= 14
+SMB_tmp3			= 16
+SMB_tmp4			= 18
+SMB_tmp5			= 20
 
 * SMB session information
 * TODO dynamically allocate these - see SMB_Init
@@ -1274,30 +1277,29 @@ nft_far
 				bra getdomain
 
 challenge_used	lda #$0001
-				ldy #SMB_sess_challenge_used
+				ldy #SMB_sess_challenge_used-SMB_sess_begin
 				sta [SMB_sessid],y
 				
-				lda SMB_input+SMB_header_size+36
+				lda SMB_input+SMB_header_size+37
 				ldy #SMB_sess_challenge-SMB_sess_begin
 				sta [SMB_sessid],y
 				iny
 				iny
-				lda SMB_input+SMB_header_size+38
+				lda SMB_input+SMB_header_size+39
 				sta [SMB_sessid],y
 				iny
 				iny
-				lda SMB_input+SMB_header_size+40
+				lda SMB_input+SMB_header_size+41
 				sta [SMB_sessid],y
 				iny
 				iny
-				lda SMB_input+SMB_header_size+42
+				lda SMB_input+SMB_header_size+43
 				sta [SMB_sessid],y			; save 8-byte challenge
 
 getdomain		ldy #SMB_sess_domain-SMB_sess_begin
 				ldx #00
 gdloop			lda SMB_input+SMB_header_size+45,x
-				and #$ff00
-				xba
+				and #$00ff
 				cmp #0000
 				beq eod
 				sta [SMB_sessid],y			; if this looks off to you, see how
@@ -1387,6 +1389,8 @@ SMB_SetupAndX	plx							; return address
 				iny
 				lda [SMB_sessid],y
 				sta SMB_staging+SMB_header_size+23	; session capabilities
+				
+				
 				
 * TODO copy username, password, native os, native lanmanager, update byte count, send result
 
@@ -1736,6 +1740,29 @@ SMB_PathInfo	plx							; return address
 *
 * Internal subroutines for SMB stuff
 *
+
+* _strcpy - Copy a string somewhere...
+* Arguments:
+*    Pointer to source (two words, on stack)
+*    Pointer to destination (two words, on stack)
+* returns:
+*    Y = number of bytes copied (including terminating zero)
+_strcpy			plx
+				PullLong SMB_tmp1	; Destination
+				PullLong SMB_tmp3	; Source
+				phx
+				ldy #00
+				sep #$30
+				mx %11
+_sclp			lda [SMB_tmp3],y
+				sta [SMB_tmp1],y
+				cmp #00
+				beq _scrt
+				iny
+				bra _sclp
+_scrt			rep #$30
+				mx %00
+				rts				
 
 * _SMB_Check - Check to see if TCP received data is SMB
 _SMB_Check		lda SMB_input+SMB_offset_proto
