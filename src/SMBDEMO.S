@@ -7,6 +7,7 @@
 * Saturday, May 2, 2015    - Formatting fixes, refactoring, rewritten SMB Negotiation code
 * Saturday, May 9, 2015    - Receive and interpret NEG_PROT reply and start login
 * Sunday, May 24, 2015     - Some bugfixes, Tool128 and Tool129 requirement for hashing and DES, LM password hashing support
+*                            Also introducing SMB_Tree_ANDX message
 *
 * REFERENCES
 * smb.c / smb.h from libOGC
@@ -619,6 +620,10 @@ notbroke		lda statbuf
 				beq closed_trampoline
 				bra ConnectLoop
 
+;
+; SMB_Negot_Prot
+;
+
 estab			PushLong CTSWinPtr
 				PushWord #1350
 				PushLong #CTSText9
@@ -647,18 +652,16 @@ sendloop2		PushWord #0000
 				pla
 				cmp #2
 				bne noevent3
-				PushWord #0000			; space for result
-				PushLong #00000000		; nil filter procedure
-				_ModalDialog
-				pla
-				cmp #2
-				bne noevent3
 				jmp CTSClose3
 
 noevent3		PushLong MySMBHandle
 				jsr SMB_Negotiate_Poll
 				pla						; get negotiation status
 				bcc sendloop2
+
+;
+; SMB_Setup_ANDX
+;
 
 login			PushLong CTSWinPtr
 				PushWord #1350
@@ -680,21 +683,60 @@ sendloop3		PushWord #0000
 				pla
 				cmp #2
 				bne noevent4
-				PushWord #0000			; space for result
-				PushLong #00000000		; nil filter procedure
+				jmp CTSClose3
+
+noevent4		PushLong MySMBHandle
+				jsr SMB_Setup_Poll
+				pla						; get negotiation status
+				bcc sendloop3
+
+;
+; SMB_Tree_ANDX
+;
+
+; fun fact: change 'treex' to 'tree' to coredump Merlin32 v1.0
+; inside a65816_Line.c function CheckForDuplicatedLabel()
+treex			PushLong CTSWinPtr
+				PushWord #1350
+				PushLong #CTSTextC
+				_SetIText
+				
+				PushLong MySMBHandle
+				jsr SMB_TreeAndX
+
+sendloop4		PushWord #0000
+				PushWord #$0006
+				PushLong #EventRec
+				_EventAvail
+				pla
+				beq noevent5
+				PushWord #0000
+				PushLong #00000000
 				_ModalDialog
 				pla
 				cmp #2
-				bne noevent4
+				bne noevent5
+				jmp CTSClose3
+
+noevent5		PushLong MySMBHandle
+				jsr SMB_Setup_Poll
+				pla
+				bcc sendloop4
+				
 				jmp SMB_staging_brk
 
-noevent4		_TCPIPPoll
-				bra sendloop3
+;
+; Closed
+;
 
 closed			PushLong CTSWinPtr
 				PushWord #1350
 				PushLong #CTSTextA
 				_SetIText
+
+;
+; Kill dialog window and TCPIP connection
+;
 
 CTSClose3		PushWord #MyIPID
 				_TCPIPLogout			; get rid of our IPID
@@ -903,6 +945,7 @@ ascdest			ds 20
 CTSText9		str 'Status: Connected, CIFS negotiating'
 CTSTextA		str 'Status: Connect Failed'
 CTSTextB		str 'Status: Logging In'
+CTSTextC		str 'Status: Mounting Share'
 
 CTSItem6		dw 1360						; id
 				dw 77,120,87,300			; bounds
@@ -1132,6 +1175,8 @@ SMB_lm_password		asc 'APPLE2'00,00,00,00,00,00,00,00 ; lanman hash login passwor
 SMB_lm_magic		asc 'KGS!@#$%'				; lanman hash magic DES crypt string
 SMB_lm_hash			ds 21						; LM Hash, actually 16 bytes but the extra zeroes make response easier to generate
 SMB_lm_response		ds 24						; LM Response
+SMB_target_tree		asc '\\LIVINGROOM\GSFILES'00	; remote tree to connect to
+SMB_target_svc		asc '?????'00					; service type (wildcard)
 
 * SMB packet staging area
 * TODO these will probably be dynamically allocated too?
@@ -1393,6 +1438,7 @@ SMB_SetupAndX	plx							; return address
 				jsr _InitSMBHeader			; make an SMB header with this information
 
 				sep $30
+				mx %11
 				lda #13
 				sta SMB_staging+SMB_header_size	; word count
 				
@@ -1402,6 +1448,7 @@ SMB_SetupAndX	plx							; return address
 				lda #00
 				sta SMB_staging+SMB_header_size+2	; reserved
 				rep $30
+				mx %00
 				
 				ldy #SMB_sess_maxbuffer-SMB_sess_begin
 				lda [SMB_sessid],y
@@ -1680,6 +1727,8 @@ sf_trampoline	jmp setup_failed
 sp_trampoline	jmp setup_proceeding
 sft_far
 
+* TODO save far end's OS, Lan Manager, and Workgroup?
+
 setup_finished	plx							; our return address
 				PushWord #0001				; finished!
 				phx
@@ -1715,8 +1764,74 @@ SMB_TreeAndX	plx							; return address
 				PushWord #CIFS_flags2		; flags2
 				jsr _InitSMBHeader			; make an SMB header with this information
 
-* TODO
+				sep $30
+				mx %11
+				lda #4
+				sta SMB_staging+SMB_header_size	; word count
+				
+				lda #$ff
+				sta SMB_staging+SMB_header_size+1	; next AndX
+				
+				rep $30
+				mx %00
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+3	; reserved
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+5	; flags
+				
+				lda #1
+				sta SMB_staging+SMB_header_size+7	; password length (1 if user-level security)
 
+				lda #0
+				sta SMB_tmp5					; initialize pointer
+				
+				; Share password
+				lda #00
+				sta SMB_staging+SMB_header_size+11	; 0x00 (nul password, no share level security)
+				inc SMB_tmp5
+				
+				; Target Tree
+				PushLong #SMB_target_tree
+				pea #^SMB_staging							; destination
+				lda #SMB_staging+SMB_header_size+11
+				clc
+				adc SMB_tmp5
+				pha
+				jsr _strcpy
+				tya
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+				
+				; Target Service Type
+				PushLong #SMB_target_svc
+				pea #^SMB_staging							; destination
+				lda #SMB_staging+SMB_header_size+11
+				clc
+				adc SMB_tmp5
+				pha
+				jsr _strcpy
+				tya
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+				
+				sta SMB_staging+SMB_header_size+9		; update byte count
+				
+				clc
+				adc #SMB_header_size+11
+				pha							; 'length' parameter for _SMB_Send
+				dec
+				dec
+				dec
+				dec
+				xba
+				sta SMB_staging+SMB_offset_tcplength+1			; save length for naked-TCP dgram
+
+				jsr _SMB_Send							; send our reply!
+				clc
 				rts
 
 *
