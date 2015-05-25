@@ -10,6 +10,7 @@
 *                            Also introducing successful SMB_Tree_ANDX message. We connect to remote shares now.
 *                            Also introducing SMB_Open_ANDX message. We open a file now.
 * Monday, May 25, 2015     - Bugfixes on SMB_Open_ANDX; file opening now successful
+*                            Also introducing SMB_Read_ANDX message. We read a file now.
 *
 * REFERENCES
 * smb.c / smb.h from libOGC
@@ -750,13 +751,61 @@ sendloop5		PushWord #0000
 				pla
 				cmp #2
 				bne noevent6
-				jmp breakndie
+				jmp CTSClose3
 
 noevent6		PushLong MySMBHandle
 				jsr SMB_OpenFile_Poll
 				bcc sendloop5
+				tax
+				pla
+				phx								; save SFID
 
-breakndie			
+;
+; SMB_ReadFile
+;
+
+readf			PushLong CTSWinPtr
+				PushWord #1350
+				PushLong #CTSTextD
+				_SetIText
+
+				; SFID already on stack still
+				PushLong MySMBHandle
+				PushLong #$E12000				; read buffer = SHR screen
+				PushLong #$8000					; size of read buffer
+				PushLong #0000					; offset into file
+				jsr SMB_ReadFile
+
+sendloop6		PushWord #0000
+				PushWord #$0006
+				PushLong #EventRec
+				_EventAvail
+				pla
+				beq noevent7
+				PushWord #0000
+				PushLong #00000000
+				_ModalDialog
+				pla
+				cmp #2
+				bne noevent7
+				jmp CTSClose3
+
+noevent7		PushLong MySMBHandle
+				jsr SMB_ReadFile_Poll
+				bcc sendloop6
+
+;
+; Display what was downloaded
+;
+
+				; squish length byte a little closer to the string
+				lda SMB_input+SMB_header_size+25
+				xba
+				sta SMB_input+SMB_header_size+25
+				
+				PushLong #SMB_input+SMB_header_size+26
+				jsr InfoDialog
+
 				jmp SMB_staging_brk
 
 ;
@@ -981,6 +1030,8 @@ CTSTextA		str 'Status: Connect Failed'
 CTSTextB		str 'Status: Logging In'
 CTSTextC		str 'Status: Mounting Share'
 CTSTextD		str 'Status: Opening \\testfile'
+CTSTextE		str 'Status: Reading testfile'
+ascdata			ds 100						; we download this from testfile
 
 CTSItem6		dw 1360						; id
 				dw 77,120,87,300			; bounds
@@ -1184,6 +1235,7 @@ SMB_tmp4			= 18
 SMB_tmp5			= 20
 SMB_tmp6			= 22
 SMB_tmp7			= 24
+SMB_tmp8			= 26
 
 * SMB session information
 * TODO dynamically allocate these - see SMB_Init
@@ -2285,6 +2337,7 @@ SMB_DiskInformation
 *
 * SMB_ReadFile - Read an open file from the remote share
 * Arguments:
+*    SFID of open file (one word, on stack)
 *    SMB session handle (two words, on stack)
 *    Long pointer to read buffer (two words, on stack)
 *    Size of read buffer (two words, on stack)
@@ -2292,7 +2345,11 @@ SMB_DiskInformation
 * Things I return on stack:
 *    Carry flag set if error
 SMB_ReadFile	plx							; return address
+				PullLong SMB_tmp7			; SMB_tmp7/SMB_tmp8 = offset
+				PullLong SMB_tmp5			; SMB_tmp5/SMB_tmp6 = sizeof read_buffer
+				PullLong SMB_tmp3			; SMB_tmp3/SMB_tmp4 = *read_buffer
 				PullLong SMB_sessid
+				PullWord SMB_tmp1			; SMB_tmp1 = SFID
 				phx							; saved return address
 
 				PushWord #SMB_read_ANDX		; command
@@ -2300,8 +2357,147 @@ SMB_ReadFile	plx							; return address
 				PushWord #CIFS_flags2		; flags2
 				jsr _InitSMBHeader			; make an SMB header with this information
 
-* TODO
+				sep $30
+				mx %11
+				lda #12
+				sta SMB_staging+SMB_header_size	; word count
+				
+				lda #$ff
+				sta SMB_staging+SMB_header_size+1	; next AndX
+				
+				lda #$00
+				sta SMB_staging+SMB_header_size+2   ; AndX Reserved
+				
+				rep $30
+				mx %00
 
+				lda #$0000
+				sta SMB_staging+SMB_header_size+3	; AndX Offset
+				
+				lda SMB_tmp1
+				sta SMB_staging+SMB_header_size+5	; SFID
+				
+				lda SMB_tmp7
+				sta SMB_staging+SMB_header_size+7	; Offsetlow
+				lda SMB_tmp8
+				sta SMB_staging+SMB_header_size+9	; Offsetlow2
+				
+				lda #1024
+				sta SMB_staging+SMB_header_size+11	; maxcountbytestoreturn
+				lda #0000
+				sta SMB_staging+SMB_header_size+13	; mincountbytestoreturn
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+15	; timeout
+				lda #0000
+				sta SMB_staging+SMB_header_size+17	; timeout2
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+19	; remaining
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+21	; offsethigh
+				lda #0000
+				sta SMB_staging+SMB_header_size+23	; offsethigh2
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+25	; byte count (always 0)
+
+				clc
+				adc #SMB_header_size+27
+				pha							; 'length' parameter for _SMB_Send
+				dec
+				dec
+				dec
+				dec
+				xba
+				sta SMB_staging+SMB_offset_tcplength+1			; save length for naked-TCP dgram
+
+				jsr _SMB_Send							; send our reply!
+				clc
+				rts
+
+* SMB_ReadFile_Poll - Call me until I tell you to stop, to receive and complete SMB Tree_ANDX
+* Arguments:
+*   SMB session handle (two words, on stack)
+* Things I return on stack:
+*   Setup status (word)
+*     $0000 - Setup proceeding
+*     $0001 - Setup finished
+*     $0002 - Setup failed
+*   Carry flag set means you can stop calling me
+SMB_ReadFile_Poll
+				plx							; our return address
+				PullLong SMB_sessid			; your smb sessid
+				phx
+
+				_TCPIPPoll
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushLong #statbuf
+				_TCPIPStatusTCP				; see if marinetti has anything for us
+				pla
+				cmp #terrNOCONNECTION
+				beq rf_trampoline
+				cmp #terrBADIPID
+				beq rf_trampoline
+				lda statbuf+8				; get recvq size, low word
+				cmp #0000					; yeah i know. for clarity.
+				beq rp_trampoline			; poll us again later, marinetti got nothing
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushWord #0000				; bufftype: static pre-allocated buffer
+				PushLong #SMB_input			; where it's all goin
+				PushLong #SMB_max_net_read_size
+				PushLong #readbuf
+				_TCPIPReadTCP
+
+				pla
+				cmp #terrNOCONNECTION
+				beq rf_trampoline
+				cmp #terrBADIPID
+				beq rf_trampoline
+								
+				jsr _SMB_Check				; do basic check to make sure we received SMB data
+				bcs rp_trampoline			; if not, wait for them to send again i guess
+
+				bra rft_far
+rf_trampoline	jmp readx_failed
+rp_trampoline	jmp readx_proceeding
+rft_far
+				lda SMB_input+SMB_offset_cmd
+				cmp #SMB_read_ANDX
+				bne rp_trampoline			; punt if not read_ANDX reply
+				
+				lda SMB_input+SMB_offset_eclass
+				cmp #0000
+				bne rf_trampoline			; they returned an error, kbye
+				
+; TODO something
+
+readx_finished	plx							; our return address
+				PushWord #0001				; finished!
+				phx
+				sec
+				rts
+
+readx_failed	plx							; our return address
+				PushWord #0002				; failure
+				phx
+				sec
+				rts
+
+readx_proceeding
+				plx							; our return address
+				PushWord #0000				; in progress
+				phx
+				clc
 				rts
 
 *
