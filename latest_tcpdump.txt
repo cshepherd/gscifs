@@ -1,5 +1,6 @@
 10.0.2.55 = Apple IIgs running Marinetti
 10.0.2.1 = Raspberry Pi running A2SERVER, SMB credentials 'PI' / 'APPLE2' with hostname 'LIVINGROOM' and workgroup 'WORKGROUP'
+  .. assumes a file on \\LIVINGROOM\GSFILES named \testfile (sorry no UI yet)
 
 01:21:25.052918 ARP, Ethernet (len 6), IPv4 (len 4), Request who-has 10.0.2.1 tell 10.0.2.55, length 46
 	0x0000:  0001 0800 0604 0001 000e 3aa2 a2a2 0a00  ..........:.....
