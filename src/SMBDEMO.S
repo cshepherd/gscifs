@@ -7,7 +7,7 @@
 * Saturday, May 2, 2015    - Formatting fixes, refactoring, rewritten SMB Negotiation code
 * Saturday, May 9, 2015    - Receive and interpret NEG_PROT reply and start login
 * Sunday, May 24, 2015     - Some bugfixes, Tool128 and Tool129 requirement for hashing and DES, LM password hashing support
-*                            Also introducing SMB_Tree_ANDX message
+*                            Also introducing successful SMB_Tree_ANDX message. We connect to remote shares now.
 *
 * REFERENCES
 * smb.c / smb.h from libOGC
@@ -719,7 +719,7 @@ sendloop4		PushWord #0000
 				jmp CTSClose3
 
 noevent5		PushLong MySMBHandle
-				jsr SMB_Setup_Poll
+				jsr SMB_TreeX_Poll
 				pla
 				bcc sendloop4
 				
@@ -1254,7 +1254,7 @@ dialect_done	sta SMB_staging+SMB_header_size+3,x	; do write the trailing zero
 
 * SMB_Negotiate_Poll - Call me until I tell you to stop, to receive and complete SMB negotiation
 * Arguments:
-*   SMB session handle (two words, on stock)
+*   SMB session handle (two words, on stack)
 * Things I return on stack:
 *   Negotiation status (word)
 *     $0000 - Negotiation proceeding
@@ -1674,7 +1674,7 @@ SMB_LM_Response
 
 * SMB_Setup_Poll - Call me until I tell you to stop, to receive and complete SMB setup
 * Arguments:
-*   SMB session handle (two words, on stock)
+*   SMB session handle (two words, on stack)
 * Things I return on stack:
 *   Setup status (word)
 *     $0000 - Setup proceeding
@@ -1726,6 +1726,17 @@ SMB_Setup_Poll
 sf_trampoline	jmp setup_failed
 sp_trampoline	jmp setup_proceeding
 sft_far
+				lda SMB_input+SMB_offset_cmd
+				cmp #SMB_setup_ANDX
+				bne sp_trampoline			; punt if not setup_ANDX reply
+				
+				lda SMB_input+SMB_offset_eclass
+				cmp #0000
+				bne sf_trampoline			; they returned an error, kbye
+				
+				lda SMB_input+SMB_offset_uid
+				ldy #SMB_sess_uid-SMB_sess_begin
+				sta [SMB_sessid],y			; save returned UID
 
 * TODO save far end's OS, Lan Manager, and Workgroup?
 
@@ -1747,7 +1758,6 @@ setup_proceeding
 				phx
 				clc
 				rts
-
 
 *
 * SMB_TreeAndX - Connect to the remote share
@@ -1831,6 +1841,89 @@ SMB_TreeAndX	plx							; return address
 				sta SMB_staging+SMB_offset_tcplength+1			; save length for naked-TCP dgram
 
 				jsr _SMB_Send							; send our reply!
+				clc
+				rts
+
+* SMB_TreeX_Poll - Call me until I tell you to stop, to receive and complete SMB Tree_ANDX
+* Arguments:
+*   SMB session handle (two words, on stack)
+* Things I return on stack:
+*   Setup status (word)
+*     $0000 - Setup proceeding
+*     $0001 - Setup finished
+*     $0002 - Setup failed
+*   Carry flag set means you can stop calling me
+SMB_TreeX_Poll
+				plx							; our return address
+				PullLong SMB_sessid			; your smb sessid
+				phx
+
+				_TCPIPPoll
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushLong #statbuf
+				_TCPIPStatusTCP				; see if marinetti has anything for us
+				pla
+				cmp #terrNOCONNECTION
+				beq tf_trampoline
+				cmp #terrBADIPID
+				beq tf_trampoline
+				lda statbuf+8				; get recvq size, low word
+				cmp #0000					; yeah i know. for clarity.
+				beq tp_trampoline			; poll us again later, marinetti got nothing
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushWord #0000				; bufftype: static pre-allocated buffer
+				PushLong #SMB_input			; where it's all goin
+				PushLong #SMB_max_net_read_size
+				PushLong #readbuf
+				_TCPIPReadTCP
+
+				pla
+				cmp #terrNOCONNECTION
+				beq tf_trampoline
+				cmp #terrBADIPID
+				beq tf_trampoline
+								
+				jsr _SMB_Check				; do basic check to make sure we received SMB data
+				bcs tp_trampoline			; if not, wait for them to send again i guess
+
+				bra tft_far
+tf_trampoline	jmp treex_failed
+tp_trampoline	jmp treex_proceeding
+tft_far
+				lda SMB_input+SMB_offset_cmd
+				cmp #SMB_treec_ANDX
+				bne tp_trampoline			; punt if not setup_ANDX reply
+				
+				lda SMB_input+SMB_offset_eclass
+				cmp #0000
+				bne tf_trampoline			; they returned an error, kbye
+				
+* TODO save remote servicetype or filesystem type?
+
+treex_finished	plx							; our return address
+				PushWord #0001				; finished!
+				phx
+				sec
+				rts
+
+treex_failed	plx							; our return address
+				PushWord #0002				; failure
+				phx
+				sec
+				rts
+
+treex_proceeding
+				plx							; our return address
+				PushWord #0000				; in progress
+				phx
 				clc
 				rts
 
