@@ -1,6 +1,7 @@
 CIFS / SMB2 navel gazing, in 65816 assembly.
 
 5/24/2015 - Current status: Connects on port 445, completes Protocol Negotiation, successfully sends login (on Setup_ANDX message), obsolete LM (DES) style password. sends Tree_ANDX message.
+.. Tree_ANDX gets ACCESS_DENIED because I need to save uid returned by Setup_ANDX reply. Also want to implement NTLMv1 hashing soon. But I'm done for today.
 
 Build 'CMD.S' with Merlin32 and the included Library directory.
 
