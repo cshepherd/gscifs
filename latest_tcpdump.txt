@@ -1,35 +1,50 @@
 10.0.2.55 = Apple IIgs running Marinetti
 10.0.2.1 = Raspberry Pi running A2SERVER, SMB credentials 'PI' / 'APPLE2'
 
-21:48:02.295804 ARP, Ethernet (len 6), IPv4 (len 4), Request who-has 10.0.2.1 tell 10.0.2.55, length 46
-	0x0000:  0001 0800 0604 0001 000e 3aa2 a2a2 0a00  ..........:.....
-	0x0010:  0237 0000 0000 0000 0a00 0201 0101 0101  .7..............
-	0x0020:  0101 0101 0101 0101 0101 0101 0101       ..............
+00:16:01.908720 IP (tos 0x0, ttl 60, id 432, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [S], cksum 0x364e (correct), seq 255265896, win 16384, length 0
+	0x0000:  4500 0028 01b0 0000 3c06 64e9 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0c68 0000 0000  .........7.h....
+	0x0020:  5002 4000 364e 0000 0000 0000 0000       P.@.6N........
 
-21:48:02.295940 ARP, Ethernet (len 6), IPv4 (len 4), Reply 10.0.2.1 is-at 8c:ae:4c:fe:6b:64, length 28
-	0x0000:  0001 0800 0604 0002 8cae 4cfe 6b64 0a00  ..........L.kd..
-	0x0010:  0201 000e 3aa2 a2a2 0a00 0237            ....:......7
+00:16:01.908987 IP (tos 0x0, ttl 64, id 34805, offset 0, flags [DF], proto TCP (6), length 40)
+    10.0.2.1.445 > 10.0.2.55.1025: Flags [.], cksum 0x1852 (incorrect -> 0xb3d1), seq 1158421903, ack 254881673, win 15544, length 0
+	0x0000:  4500 0028 87f5 4000 4006 9aa3 0a00 0201  E..(..@.@.......
+	0x0010:  0a00 0237 01bd 0401 450c 1d8f 0f31 2f89  ...7....E....1/.
+	0x0020:  5010 3cb8 1852 0000                      P.<..R..
 
-21:48:05.318403 IP (tos 0x0, ttl 60, id 434, offset 0, flags [none], proto TCP (6), length 40)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [S], cksum 0x37ff (correct), seq 219876563, win 16384, length 0
+00:16:01.930860 IP (tos 0x0, ttl 60, id 433, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [R], cksum 0x1331 (correct), seq 254881673, win 16384, length 0
+	0x0000:  4500 0028 01b1 0000 3c06 64e8 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f31 2f89 0000 0000  .........1/.....
+	0x0020:  5004 4000 1331 0000 0000 0000 0000       P.@..1........
+
+00:16:01.951983 IP (tos 0x0, ttl 60, id 434, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [R], cksum 0x1331 (correct), seq 254881673, win 16384, length 0
 	0x0000:  4500 0028 01b2 0000 3c06 64e7 0a00 0237  E..(....<.d....7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0cd3 0000 0000  ................
-	0x0020:  5002 4000 37ff 0000 0000 0000 0000       P.@.7.........
+	0x0010:  0a00 0201 0401 01bd 0f31 2f89 0000 0000  .........1/.....
+	0x0020:  5004 4000 1331 0000 0000 0000 0000       P.@..1........
 
-21:48:05.318708 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto TCP (6), length 44)
-    10.0.2.1.445 > 10.0.2.55.1025: Flags [S.], cksum 0x1856 (incorrect -> 0x0585), seq 647756553, ack 219876564, win 14600, options [mss 1460], length 0
+00:16:04.930396 IP (tos 0x0, ttl 60, id 435, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [S], cksum 0x364e (correct), seq 255265896, win 16384, length 0
+	0x0000:  4500 0028 01b3 0000 3c06 64e6 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0c68 0000 0000  .........7.h....
+	0x0020:  5002 4000 364e 0000 0000 0000 0000       P.@.6N........
+
+00:16:04.930752 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto TCP (6), length 44)
+    10.0.2.1.445 > 10.0.2.55.1025: Flags [S.], cksum 0x1856 (incorrect -> 0x3950), seq 1952741316, ack 255265897, win 14600, options [mss 1460], length 0
 	0x0000:  4500 002c 0000 4000 4006 2295 0a00 0201  E..,..@.@.".....
-	0x0010:  0a00 0237 01bd 0401 269b fb09 0d1b 0cd4  ...7....&.......
+	0x0010:  0a00 0237 01bd 0401 7464 77c4 0f37 0c69  ...7....tdw..7.i
 	0x0020:  6012 3908 1856 0000 0204 05b4            `.9..V......
 
-21:48:05.342031 IP (tos 0x0, ttl 60, id 435, offset 0, flags [none], proto TCP (6), length 40)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x164a (correct), seq 1, ack 1, win 16384, length 0
-	0x0000:  4500 0028 01b3 0000 3c06 64e6 0a00 0237  E..(....<.d....7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0cd4 269b fb0a  ............&...
-	0x0020:  5010 4000 164a 0000 0000 0000 0000       P.@..J........
+00:16:04.953220 IP (tos 0x0, ttl 60, id 436, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x4a15 (correct), seq 1, ack 1, win 16384, length 0
+	0x0000:  4500 0028 01b4 0000 3c06 64e5 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0c69 7464 77c5  .........7.itdw.
+	0x0020:  5010 4000 4a15 0000 0000 0000 0000       P.@.J.........
 
-21:48:05.445169 IP (tos 0x0, ttl 60, id 436, offset 0, flags [none], proto TCP (6), length 91)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [P.], cksum 0x8a33 (correct), seq 1:52, ack 1, win 16384, length 51
+00:16:05.059660 IP (tos 0x0, ttl 60, id 437, offset 0, flags [none], proto TCP (6), length 91)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [P.], cksum 0xbdfe (correct), seq 1:52, ack 1, win 16384, length 51
 SMB PACKET: SMBnegprot (REQUEST)
 SMB Command   =  0x72
 Error class   =  0x0
@@ -45,21 +60,21 @@ smb_bcc=12
 Dialect=NT LM 0.12
 
 
-	0x0000:  4500 005b 01b4 0000 3c06 64b2 0a00 0237  E..[....<.d....7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0cd4 269b fb0a  ............&...
-	0x0020:  5018 4000 8a33 0000 0000 002f ff53 4d42  P.@..3...../.SMB
+	0x0000:  4500 005b 01b5 0000 3c06 64b1 0a00 0237  E..[....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0c69 7464 77c5  .........7.itdw.
+	0x0020:  5018 4000 bdfe 0000 0000 002f ff53 4d42  P.@......../.SMB
 	0x0030:  7200 0000 0008 0100 0000 0000 0000 0000  r...............
 	0x0040:  0000 0000 0000 adde 0000 0100 000c 0002  ................
 	0x0050:  4e54 204c 4d20 302e 3132 00              NT.LM.0.12.
 
-21:48:05.445411 IP (tos 0x0, ttl 64, id 29952, offset 0, flags [DF], proto TCP (6), length 40)
-    10.0.2.1.445 > 10.0.2.55.1025: Flags [.], cksum 0x1852 (incorrect -> 0x1d0f), seq 1, ack 52, win 14600, length 0
-	0x0000:  4500 0028 7500 4000 4006 ad98 0a00 0201  E..(u.@.@.......
-	0x0010:  0a00 0237 01bd 0401 269b fb0a 0d1b 0d07  ...7....&.......
+00:16:05.059899 IP (tos 0x0, ttl 64, id 28006, offset 0, flags [DF], proto TCP (6), length 40)
+    10.0.2.1.445 > 10.0.2.55.1025: Flags [.], cksum 0x1852 (incorrect -> 0x50da), seq 1, ack 52, win 14600, length 0
+	0x0000:  4500 0028 6d66 4000 4006 b532 0a00 0201  E..(mf@.@..2....
+	0x0010:  0a00 0237 01bd 0401 7464 77c5 0f37 0c9c  ...7....tdw..7..
 	0x0020:  5010 3908 1852 0000                      P.9..R..
 
-21:48:05.450385 IP (tos 0x0, ttl 64, id 29953, offset 0, flags [DF], proto TCP (6), length 141)
-    10.0.2.1.445 > 10.0.2.55.1025: Flags [P.], cksum 0x05dd (correct), seq 1:102, ack 52, win 14600, length 101
+00:16:05.065101 IP (tos 0x0, ttl 64, id 28007, offset 0, flags [DF], proto TCP (6), length 141)
+    10.0.2.1.445 > 10.0.2.55.1025: Flags [P.], cksum 0xe1cf (correct), seq 1:102, ack 52, win 14600, length 101
 SMB PACKET: SMBnegprot (REPLY)
 SMB Command   =  0x72
 Error class   =  0x0
@@ -78,35 +93,35 @@ MaxMux=50 (0x32)
 NumVcs=1 (0x1)
 MaxBuffer=16644 (0x4104)
 RawSize=65536 (0x10000)
-SessionKey=0x7F5E
+SessionKey=0x8F0
 Capabilities=0x80F3FD
-ServerTime=Sun May 24 21:48:06 2015
+ServerTime=Mon May 25 00:16:06 2015
 TimeZone=240 (0xf0)
 CryptKey=Data: (1 bytes)
 [000] 08                                                \0x08 
 smb_bcc=28
-[000] 19 2A FC F4 00 99 70 E1  57 00 4F 00 52 00 4B 00  \0x19*\0xfc\0xf4\0x00\0x99p\0xe1 W\0x00O\0x00R\0x00K\0x00
+[000] 74 FC 8A 3F 94 43 F3 A8  57 00 4F 00 52 00 4B 00  t\0xfc\0x8a?\0x94C\0xf3\0xa8 W\0x00O\0x00R\0x00K\0x00
 [010] 47 00 52 00 4F 00 55 00  50 00 00 00              G\0x00R\0x00O\0x00U\0x00 P\0x00\0x00\0x00
 
 
-	0x0000:  4500 008d 7501 4000 4006 ad32 0a00 0201  E...u.@.@..2....
-	0x0010:  0a00 0237 01bd 0401 269b fb0a 0d1b 0d07  ...7....&.......
-	0x0020:  5018 3908 05dd 0000 0000 0061 ff53 4d42  P.9........a.SMB
+	0x0000:  4500 008d 6d67 4000 4006 b4cc 0a00 0201  E...mg@.@.......
+	0x0010:  0a00 0237 01bd 0401 7464 77c5 0f37 0c9c  ...7....tdw..7..
+	0x0020:  5018 3908 e1cf 0000 0000 0061 ff53 4d42  P.9........a.SMB
 	0x0030:  7200 0000 0088 0340 0000 0000 0000 0000  r......@........
 	0x0040:  0000 0000 0000 adde 0000 0100 1100 0003  ................
-	0x0050:  3200 0100 0441 0000 0000 0100 5e7f 0000  2....A......^...
-	0x0060:  fdf3 8000 b789 d6d7 8c96 d001 f000 081c  ................
-	0x0070:  0019 2afc f400 9970 e157 004f 0052 004b  ..*....p.W.O.R.K
+	0x0050:  3200 0100 0441 0000 0000 0100 f008 0000  2....A..........
+	0x0060:  fdf3 8000 302c 8084 a196 d001 f000 081c  ....0,..........
+	0x0070:  0074 fc8a 3f94 43f3 a857 004f 0052 004b  .t..?.C..W.O.R.K
 	0x0080:  0047 0052 004f 0055 0050 0000 00         .G.R.O.U.P...
 
-21:48:05.503428 IP (tos 0x0, ttl 60, id 437, offset 0, flags [none], proto TCP (6), length 40)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x15b2 (correct), seq 52, ack 102, win 16384, length 0
-	0x0000:  4500 0028 01b5 0000 3c06 64e4 0a00 0237  E..(....<.d....7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0d07 269b fb6f  ............&..o
-	0x0020:  5010 4000 15b2 0000 0000 0000 0000       P.@...........
+00:16:05.113858 IP (tos 0x0, ttl 60, id 438, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x497d (correct), seq 52, ack 102, win 16384, length 0
+	0x0000:  4500 0028 01b6 0000 3c06 64e3 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0c9c 7464 782a  .........7..tdx*
+	0x0020:  5010 4000 497d 0000 0000 0000 0000       P.@.I}........
 
-21:48:05.743170 IP (tos 0x0, ttl 60, id 438, offset 0, flags [none], proto TCP (6), length 183)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [P.], cksum 0xf1d1 (correct), seq 52:195, ack 102, win 16384, length 143
+00:16:05.353446 IP (tos 0x0, ttl 60, id 439, offset 0, flags [none], proto TCP (6), length 183)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [P.], cksum 0x7f37 (correct), seq 52:195, ack 102, win 16384, length 143
 SMB PACKET: SMBsesssetupX (REQUEST)
 SMB Command   =  0x73
 Error class   =  0x0
@@ -124,35 +139,35 @@ Off2=0 (0x0)
 MaxBuffer=16644 (0x4104)
 MaxMpx=50 (0x32)
 VcNumber=1 (0x1)
-SessionKey=0x7F5E
+SessionKey=0x8F0
 CaseInsensitivePasswordLength=24 (0x18)
 CaseSensitivePasswordLength=0 (0x0)
 Res=0x0
 Capabilities=0x80F3FD
 Pass1&Pass2&Account&Domain&OS&LanMan=
 smb_bcc=78
-[000] 03 A2 EF AF 3B 63 80 33  F2 40 F0 26 71 F0 32 04  \0x03\0xa2\0xef\0xaf;c\0x803 \0xf2@\0xf0&q\0xf02\0x04
-[010] CC BE F5 3D 4C DA 94 68  00 00 00 00 00 00 00 00  \0xcc\0xbe\0xf5=L\0xda\0x94h \0x00\0x00\0x00\0x00\0x00\0x00\0x00\0x00
+[000] F3 E1 2B C1 B9 1E F4 0B  7A E8 D5 93 F2 C6 56 11  \0xf3\0xe1+\0xc1\0xb9\0x1e\0xf4\0x0b z\0xe8\0xd5\0x93\0xf2\0xc6V\0x11
+[010] 2C 20 43 40 C5 58 11 C6  00 00 00 00 00 00 00 00  , C@\0xc5X\0x11\0xc6 \0x00\0x00\0x00\0x00\0x00\0x00\0x00\0x00
 [020] 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  \0x00\0x00\0x00\0x00\0x00\0x00\0x00\0x00 \0x00\0x00\0x00\0x00\0x00\0x00\0x00\0x00
 [030] 50 49 00 57 4F 52 4B 47  52 4F 55 50 00 47 53 2F  PI\0x00WORKG ROUP\0x00GS/
 [040] 4F 53 00 41 70 70 6C 65  20 49 49 67 73 00        OS\0x00Apple  IIgs\0x00
 
 
-	0x0000:  4500 00b7 01b6 0000 3c06 6454 0a00 0237  E.......<.dT...7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0d07 269b fb6f  ............&..o
-	0x0020:  5018 4000 f1d1 0000 0000 008b ff53 4d42  P.@..........SMB
+	0x0000:  4500 00b7 01b7 0000 3c06 6453 0a00 0237  E.......<.dS...7
+	0x0010:  0a00 0201 0401 01bd 0f37 0c9c 7464 782a  .........7..tdx*
+	0x0020:  5018 4000 7f37 0000 0000 008b ff53 4d42  P.@..7.......SMB
 	0x0030:  7300 0000 0008 0100 0000 0000 0000 0000  s...............
 	0x0040:  0000 0000 0000 adde 0000 0100 0dff 0000  ................
-	0x0050:  0004 4132 0001 005e 7f00 0018 0000 0000  ..A2...^........
-	0x0060:  0000 00fd f380 004e 0003 a2ef af3b 6380  .......N.....;c.
-	0x0070:  33f2 40f0 2671 f032 04cc bef5 3d4c da94  3.@.&q.2....=L..
-	0x0080:  6800 0000 0000 0000 0000 0000 0000 0000  h...............
+	0x0050:  0004 4132 0001 00f0 0800 0018 0000 0000  ..A2............
+	0x0060:  0000 00fd f380 004e 00f3 e12b c1b9 1ef4  .......N...+....
+	0x0070:  0b7a e8d5 93f2 c656 112c 2043 40c5 5811  .z.....V.,.C@.X.
+	0x0080:  c600 0000 0000 0000 0000 0000 0000 0000  ................
 	0x0090:  0000 0000 0000 0000 0050 4900 574f 524b  .........PI.WORK
 	0x00a0:  4752 4f55 5000 4753 2f4f 5300 4170 706c  GROUP.GS/OS.Appl
 	0x00b0:  6520 4949 6773 00                        e.IIgs.
 
-21:48:05.745141 IP (tos 0x0, ttl 64, id 29954, offset 0, flags [DF], proto TCP (6), length 112)
-    10.0.2.1.445 > 10.0.2.55.1025: Flags [P.], cksum 0x053c (correct), seq 102:174, ack 195, win 15544, length 72
+00:16:05.355813 IP (tos 0x0, ttl 64, id 28008, offset 0, flags [DF], proto TCP (6), length 112)
+    10.0.2.1.445 > 10.0.2.55.1025: Flags [P.], cksum 0x3907 (correct), seq 102:174, ack 195, win 15544, length 72
 SMB PACKET: SMBsesssetupX (REPLY)
 SMB Command   =  0x73
 Error class   =  0x0
@@ -172,22 +187,22 @@ smb_bcc=27
 [010] 00 57 4F 52 4B 47 52 4F  55 50 00                 \0x00WORKGRO UP\0x00
 
 
-	0x0000:  4500 0070 7502 4000 4006 ad4e 0a00 0201  E..pu.@.@..N....
-	0x0010:  0a00 0237 01bd 0401 269b fb6f 0d1b 0d96  ...7....&..o....
-	0x0020:  5018 3cb8 053c 0000 0000 0044 ff53 4d42  P.<..<.....D.SMB
+	0x0000:  4500 0070 6d68 4000 4006 b4e8 0a00 0201  E..pmh@.@.......
+	0x0010:  0a00 0237 01bd 0401 7464 782a 0f37 0d2b  ...7....tdx*.7.+
+	0x0020:  5018 3cb8 3907 0000 0000 0044 ff53 4d42  P.<.9......D.SMB
 	0x0030:  7300 0000 0088 0340 0000 0000 0000 0000  s......@........
 	0x0040:  0000 0000 0000 adde 6400 0100 03ff 0000  ........d.......
 	0x0050:  0001 001b 0055 6e69 7800 5361 6d62 6120  .....Unix.Samba.
 	0x0060:  332e 362e 3600 574f 524b 4752 4f55 5000  3.6.6.WORKGROUP.
 
-21:48:05.795344 IP (tos 0x0, ttl 60, id 439, offset 0, flags [none], proto TCP (6), length 40)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x14db (correct), seq 195, ack 174, win 16384, length 0
-	0x0000:  4500 0028 01b7 0000 3c06 64e2 0a00 0237  E..(....<.d....7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0d96 269b fbb7  ............&...
-	0x0020:  5010 4000 14db 0000 0000 0000 0000       P.@...........
+00:16:05.406553 IP (tos 0x0, ttl 60, id 440, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x48a6 (correct), seq 195, ack 174, win 16384, length 0
+	0x0000:  4500 0028 01b8 0000 3c06 64e1 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0d2b 7464 7872  .........7.+tdxr
+	0x0020:  5010 4000 48a6 0000 0000 0000 0000       P.@.H.........
 
-21:48:05.911881 IP (tos 0x0, ttl 60, id 440, offset 0, flags [none], proto TCP (6), length 115)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [P.], cksum 0x8de9 (correct), seq 195:270, ack 174, win 16384, length 75
+00:16:05.527029 IP (tos 0x0, ttl 60, id 441, offset 0, flags [none], proto TCP (6), length 115)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [P.], cksum 0xc1b4 (correct), seq 195:270, ack 174, win 16384, length 75
 SMB PACKET: SMBtconX (REQUEST)
 SMB Command   =  0x75
 Error class   =  0x0
@@ -210,17 +225,17 @@ smb_buf[]=
 [010] 46 49 4C 45 53 00 3F 3F  3F 3F 3F 00              FILES\0x00?? ???\0x00
 
 
-	0x0000:  4500 0073 01b8 0000 3c06 6496 0a00 0237  E..s....<.d....7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0d96 269b fbb7  ............&...
-	0x0020:  5018 4000 8de9 0000 0000 0047 ff53 4d42  P.@........G.SMB
+	0x0000:  4500 0073 01b9 0000 3c06 6495 0a00 0237  E..s....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0d2b 7464 7872  .........7.+tdxr
+	0x0020:  5018 4000 c1b4 0000 0000 0047 ff53 4d42  P.@........G.SMB
 	0x0030:  7500 0000 0008 0100 0000 0000 0000 0000  u...............
 	0x0040:  0000 0000 0000 adde 6400 0100 04ff 0000  ........d.......
 	0x0050:  0000 0001 001c 0000 5c5c 4c49 5649 4e47  ........\\LIVING
 	0x0060:  524f 4f4d 5c47 5346 494c 4553 003f 3f3f  ROOM\GSFILES.???
 	0x0070:  3f3f 00                                  ??.
 
-21:48:05.932366 IP (tos 0x0, ttl 64, id 29955, offset 0, flags [DF], proto TCP (6), length 93)
-    10.0.2.1.445 > 10.0.2.55.1025: Flags [P.], cksum 0x6b3b (correct), seq 174:227, ack 270, win 15544, length 53
+00:16:05.547372 IP (tos 0x0, ttl 64, id 28009, offset 0, flags [DF], proto TCP (6), length 93)
+    10.0.2.1.445 > 10.0.2.55.1025: Flags [P.], cksum 0x9f06 (correct), seq 174:227, ack 270, win 15544, length 53
 SMB PACKET: SMBtconX (REPLY)
 SMB Command   =  0x75
 Error class   =  0x0
@@ -242,15 +257,94 @@ Data: (5 bytes)
 [000] 4E 54 46 53 00                                    NTFS\0x00 
 
 
-	0x0000:  4500 005d 7503 4000 4006 ad60 0a00 0201  E..]u.@.@..`....
-	0x0010:  0a00 0237 01bd 0401 269b fbb7 0d1b 0de1  ...7....&.......
-	0x0020:  5018 3cb8 6b3b 0000 0000 0031 ff53 4d42  P.<.k;.....1.SMB
+	0x0000:  4500 005d 6d69 4000 4006 b4fa 0a00 0201  E..]mi@.@.......
+	0x0010:  0a00 0237 01bd 0401 7464 7872 0f37 0d76  ...7....tdxr.7.v
+	0x0020:  5018 3cb8 9f06 0000 0000 0031 ff53 4d42  P.<........1.SMB
 	0x0030:  7500 0000 0088 0340 0000 0000 0000 0000  u......@........
 	0x0040:  0000 0000 0100 adde 6400 0100 03ff 0000  ........d.......
 	0x0050:  0001 0008 0041 3a00 4e54 4653 00         .....A:.NTFS.
 
-21:48:05.982835 IP (tos 0x0, ttl 60, id 441, offset 0, flags [none], proto TCP (6), length 40)
-    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x145b (correct), seq 270, ack 227, win 16384, length 0
-	0x0000:  4500 0028 01b9 0000 3c06 64e0 0a00 0237  E..(....<.d....7
-	0x0010:  0a00 0201 0401 01bd 0d1b 0de1 269b fbec  ............&...
-	0x0020:  5010 4000 145b 0000 0000 0000 0000       P.@..[........
+00:16:05.597997 IP (tos 0x0, ttl 60, id 442, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x4826 (correct), seq 270, ack 227, win 16384, length 0
+	0x0000:  4500 0028 01ba 0000 3c06 64df 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0d76 7464 78a7  .........7.vtdx.
+	0x0020:  5010 4000 4826 0000 0000 0000 0000       P.@.H&........
+
+00:16:05.714370 IP (tos 0x0, ttl 60, id 443, offset 0, flags [none], proto TCP (6), length 119)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [P.], cksum 0x6e78 (correct), seq 270:349, ack 227, win 16384, length 79
+SMB PACKET: SMBopenX (REQUEST)
+SMB Command   =  0x2D
+Error class   =  0x0
+Error code    =  0 (0x0)
+Flags1        =  0x8
+Flags2        =  0x1
+Tree ID       =  1 (0x1)
+Proc ID       =  57005 (0xdead)
+UID           =  100 (0x64)
+MID           =  1 (0x1)
+Word Count    =  15 (0xf)
+Com2=0xFF
+Off2=0 (0x0)
+Flags=0x0
+Mode=0x0
+SearchAttrib=
+Attrib=
+Time=NULL
+OFun=0x1
+Size=0 (0x0)
+TimeOut=0 (0x0)
+Res=0x0
+smb_bcc=10
+Path=\TESTFILE
+
+
+	0x0000:  4500 0077 01bb 0000 3c06 648f 0a00 0237  E..w....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0d76 7464 78a7  .........7.vtdx.
+	0x0020:  5018 4000 6e78 0000 0000 004b ff53 4d42  P.@.nx.....K.SMB
+	0x0030:  2d00 0000 0008 0100 0000 0000 0000 0000  -...............
+	0x0040:  0000 0000 0100 adde 6400 0100 0fff 0000  ........d.......
+	0x0050:  0000 0000 0000 0000 0000 0000 0001 0000  ................
+	0x0060:  0000 0000 0000 0000 0000 000a 005c 5445  .............\TE
+	0x0070:  5354 4649 4c45 00                        STFILE.
+
+00:16:05.717385 IP (tos 0x0, ttl 64, id 28010, offset 0, flags [DF], proto TCP (6), length 109)
+    10.0.2.1.445 > 10.0.2.55.1025: Flags [P.], cksum 0xcbec (correct), seq 227:296, ack 349, win 15544, length 69
+SMB PACKET: SMBopenX (REPLY)
+SMB Command   =  0x2D
+Error class   =  0x0
+Error code    =  0 (0x0)
+Flags1        =  0x88
+Flags2        =  0x3
+Tree ID       =  1 (0x1)
+Proc ID       =  57005 (0xdead)
+UID           =  100 (0x64)
+MID           =  1 (0x1)
+Word Count    =  15 (0xf)
+Com2=0xFF
+Off2=0 (0x0)
+Handle=15093 (0x3af5)
+Attrib=
+Time=Sat Mar  3 10:43:04 2018
+Size=44 (0x2c)
+Access=0x0
+Type=0x0
+State=0x0
+Action=0x1
+FileID=0x0
+Res=0x0
+smb_bcc=0
+
+
+	0x0000:  4500 006d 6d6a 4000 4006 b4e9 0a00 0201  E..mmj@.@.......
+	0x0010:  0a00 0237 01bd 0401 7464 78a7 0f37 0dc5  ...7....tdx..7..
+	0x0020:  5018 3cb8 cbec 0000 0000 0041 ff53 4d42  P.<........A.SMB
+	0x0030:  2d00 0000 0088 0340 0000 0000 0000 0000  -......@........
+	0x0040:  0000 0000 0100 adde 6400 0100 0fff 0000  ........d.......
+	0x0050:  00f5 3a80 0063 4c62 552c 0000 0000 0000  ..:..cLbU,......
+	0x0060:  0000 0001 0000 0000 0000 0000 00         .............
+
+00:16:05.771242 IP (tos 0x0, ttl 60, id 444, offset 0, flags [none], proto TCP (6), length 40)
+    10.0.2.55.1025 > 10.0.2.1.445: Flags [.], cksum 0x4792 (correct), seq 349, ack 296, win 16384, length 0
+	0x0000:  4500 0028 01bc 0000 3c06 64dd 0a00 0237  E..(....<.d....7
+	0x0010:  0a00 0201 0401 01bd 0f37 0dc5 7464 78ec  .........7..tdx.
+	0x0020:  5010 4000 4792 0000 0000 0000 0000       P.@.G.........

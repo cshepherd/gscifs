@@ -9,6 +9,7 @@
 * Sunday, May 24, 2015     - Some bugfixes, Tool128 and Tool129 requirement for hashing and DES, LM password hashing support
 *                            Also introducing successful SMB_Tree_ANDX message. We connect to remote shares now.
 *                            Also introducing SMB_Open_ANDX message. We open a file now.
+* Monday, May 25, 2015     - Bugfixes on SMB_Open_ANDX; file opening now successful
 *
 * REFERENCES
 * smb.c / smb.h from libOGC
@@ -1181,6 +1182,8 @@ SMB_tmp2			= 14
 SMB_tmp3			= 16
 SMB_tmp4			= 18
 SMB_tmp5			= 20
+SMB_tmp6			= 22
+SMB_tmp7			= 24
 
 * SMB session information
 * TODO dynamically allocate these - see SMB_Init
@@ -1211,7 +1214,7 @@ SMB_lm_hash			ds 21						; LM Hash, actually 16 bytes but the extra zeroes make 
 SMB_lm_response		ds 24						; LM Response
 SMB_target_tree		asc '\\LIVINGROOM\GSFILES'00	; remote tree to connect to
 SMB_target_svc		asc '?????'00					; service type (wildcard)
-SMB_target_file		asc '\\TESTFILE'00			; file to download
+SMB_target_file		asc '\TESTFILE'00			; file to download
 
 * SMB packet staging area
 * TODO these will probably be dynamically allocated too?
@@ -1975,7 +1978,7 @@ treex_proceeding
 *    A = SMB filehandle id
 *    Carry flag set if error
 SMB_OpenFile	plx							; return address
-				PullLong SMB_tmp1			; filename
+				PullLong SMB_tmp7			; filename
 				PullLong SMB_sessid
 				phx							; saved return address
 
@@ -2007,47 +2010,45 @@ SMB_OpenFile	plx							; return address
 				lda #SMB_open_reading
 				sta SMB_staging+SMB_header_size+7	; Access Mode
 				
-				lda #0006
-				sta SMB_staging+SMB_header_size+9	; ??
+				lda #0000
+				sta SMB_staging+SMB_header_size+9	; SearchAttrib (6 = HIDDEN & SYSTEM?)
+								
+				lda #0000
+				sta SMB_staging+SMB_header_size+11	; file attributes
 				
 				lda #0000
-				sta SMB_staging+SMB_header_size+11	; type of file
+				sta SMB_staging+SMB_header_size+13	; file time (don't care, let server decide)
+				sta SMB_staging+SMB_header_size+15
+				
+				lda #SMB_of_open
+				sta SMB_staging+SMB_header_size+17	; openmode
 				
 				lda #0000
-				sta SMB_staging+SMB_header_size+13	; file attributes
+				sta SMB_staging+SMB_header_size+19	; allocation size
 				
 				lda #0000
-				sta SMB_staging+SMB_header_size+15	; file time (don't care, let server decide)
-				sta SMB_staging+SMB_header_size+17
+				sta SMB_staging+SMB_header_size+21	; allocation size
 				
 				lda #0000
-				sta SMB_staging+SMB_header_size+19	; creation flags
-				
+				sta SMB_staging+SMB_header_size+23  ; timeout
 				lda #0000
-				sta SMB_staging+SMB_header_size+21	; creation flags2?
-				
-				lda #0000
-				sta SMB_staging+SMB_header_size+23	; allocation size
-				sta SMB_staging+SMB_header_size+25	; allocation size
+				sta SMB_staging+SMB_header_size+25	; timeout
 				
 				lda #0000
 				sta SMB_staging+SMB_header_size+27	; reserved[0] must be zero
 				lda #0000
-				sta SMB_staging+SMB_header_size+31	; reserved[1] must be zero
+				sta SMB_staging+SMB_header_size+29	; reserved[1] must be zero
 				
 				lda #0000
-				sta SMB_staging+SMB_header_size+35	; byte count
+				sta SMB_staging+SMB_header_size+31	; byte count
 				
-				lda #0004
-				sta SMB_staging+SMB_header_size+37	; BufferFormat (8-bit)
-
 				lda #0
 				sta SMB_tmp5					; initialize pointer
 				
 				; Target File
-				PushLong #SMB_tmp1						; source
+				PushLong SMB_tmp7						; source
 				pea #^SMB_staging							; destination
-				lda #SMB_staging+SMB_header_size+38
+				lda #SMB_staging+SMB_header_size+33
 				clc
 				adc SMB_tmp5
 				pha
@@ -2057,7 +2058,7 @@ SMB_OpenFile	plx							; return address
 				adc SMB_tmp5
 				sta SMB_tmp5
 
-				sta SMB_staging+SMB_header_size+35		; update byte count
+				sta SMB_staging+SMB_header_size+31		; update byte count
 				
 				clc
 				adc #SMB_header_size+33
