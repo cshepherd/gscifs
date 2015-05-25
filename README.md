@@ -1,4 +1,4 @@
-CIFS / SMB2 navel gazing, in 65816 assembly.
+CIFS / SMB1 navel gazing, in 65816 assembly.
 
 5/24/2015 - Current status: Connects on port 445, completes Protocol Negotiation, successfully sends login (on Setup_ANDX message), obsolete LM (DES) style password. Sends successful Tree_ANDX message, thus connecting to a remote share. Sends Open_ANDX message message, opening a file.
 
@@ -16,5 +16,4 @@ I mostly only hack on weekends, but can test and merge all week long.
 
 If this is not your style, fork it or start over, but at least try.
 
-Oh and the .AppleDouble files are because I build to an AppleShare target. Then I boot up the IIGS and double-click to run it. Just think, someday we won't need that.
-
+Oh and the .AppleDouble files are because I build to an AppleShare target. Then I boot up the IIGS and double-click to run it.

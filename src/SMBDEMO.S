@@ -1,5 +1,5 @@
 *
-* Marinetti / SMB2 Test, Mark II
+* Marinetti / SMB1 Test (THIS IS NOT SMB2), Mark II
 *
 * CHANGELOG
 * Thursday, April 30, 2015 - Restarted effort, ported code from ORCA/M to Merlin32 and debugged Merlin32 environment
