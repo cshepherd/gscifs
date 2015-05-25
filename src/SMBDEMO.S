@@ -8,6 +8,7 @@
 * Saturday, May 9, 2015    - Receive and interpret NEG_PROT reply and start login
 * Sunday, May 24, 2015     - Some bugfixes, Tool128 and Tool129 requirement for hashing and DES, LM password hashing support
 *                            Also introducing successful SMB_Tree_ANDX message. We connect to remote shares now.
+*                            Also introducing SMB_Open_ANDX message. We open a file now.
 *
 * REFERENCES
 * smb.c / smb.h from libOGC
@@ -689,7 +690,7 @@ noevent4		PushLong MySMBHandle
 				jsr SMB_Setup_Poll
 				pla						; get negotiation status
 				bcc sendloop3
-
+				
 ;
 ; SMB_Tree_ANDX
 ;
@@ -722,7 +723,39 @@ noevent5		PushLong MySMBHandle
 				jsr SMB_TreeX_Poll
 				pla
 				bcc sendloop4
+
+;
+; SMB_OpenFile
+;
+
+openf			PushLong CTSWinPtr
+				PushWord #1350
+				PushLong #CTSTextC
+				_SetIText
 				
+				PushLong MySMBHandle
+				PushLong #SMB_target_file
+				jsr SMB_OpenFile
+
+sendloop5		PushWord #0000
+				PushWord #$0006
+				PushLong #EventRec
+				_EventAvail
+				pla
+				beq noevent6
+				PushWord #0000
+				PushLong #00000000
+				_ModalDialog
+				pla
+				cmp #2
+				bne noevent6
+				jmp breakndie
+
+noevent6		PushLong MySMBHandle
+				jsr SMB_OpenFile_Poll
+				bcc sendloop5
+
+breakndie			
 				jmp SMB_staging_brk
 
 ;
@@ -946,6 +979,7 @@ CTSText9		str 'Status: Connected, CIFS negotiating'
 CTSTextA		str 'Status: Connect Failed'
 CTSTextB		str 'Status: Logging In'
 CTSTextC		str 'Status: Mounting Share'
+CTSTextD		str 'Status: Opening \\testfile'
 
 CTSItem6		dw 1360						; id
 				dw 77,120,87,300			; bounds
@@ -1177,6 +1211,7 @@ SMB_lm_hash			ds 21						; LM Hash, actually 16 bytes but the extra zeroes make 
 SMB_lm_response		ds 24						; LM Response
 SMB_target_tree		asc '\\LIVINGROOM\GSFILES'00	; remote tree to connect to
 SMB_target_svc		asc '?????'00					; service type (wildcard)
+SMB_target_file		asc '\\TESTFILE'00			; file to download
 
 * SMB packet staging area
 * TODO these will probably be dynamically allocated too?
@@ -1906,6 +1941,10 @@ tft_far
 				cmp #0000
 				bne tf_trampoline			; they returned an error, kbye
 				
+				lda SMB_input+SMB_offset_tid
+				ldy #SMB_sess_tid-SMB_sess_begin
+				sta [SMB_sessid],y			; save returned TID
+				
 * TODO save remote servicetype or filesystem type?
 
 treex_finished	plx							; our return address
@@ -1932,12 +1971,11 @@ treex_proceeding
 * Arguments:
 *    SMB session handle (two words, on stack)
 *    Long pointer to filename (two words, on stack)
-*    Access flags (one word, on stack)
-*    Creation flags (one word, on stack)
 * Things I return on stack:
 *    A = SMB filehandle id
 *    Carry flag set if error
 SMB_OpenFile	plx							; return address
+				PullLong SMB_tmp1			; filename
 				PullLong SMB_sessid
 				phx							; saved return address
 
@@ -1946,9 +1984,178 @@ SMB_OpenFile	plx							; return address
 				PushWord #CIFS_flags2		; flags2
 				jsr _InitSMBHeader			; make an SMB header with this information
 
-* TODO
+				sep $30
+				mx %11
+				lda #15
+				sta SMB_staging+SMB_header_size	; word count
+				
+				lda #$ff
+				sta SMB_staging+SMB_header_size+1	; next AndX
+				
+				lda #$00
+				sta SMB_staging+SMB_header_size+2   ; AndX Reserved
+				
+				rep $30
+				mx %00
+				
+				lda #$0000
+				sta SMB_staging+SMB_header_size+3	; AndX Offset
+				
+				lda #$0000
+				sta SMB_staging+SMB_header_size+5	; Flags
+				
+				lda #SMB_open_reading
+				sta SMB_staging+SMB_header_size+7	; Access Mode
+				
+				lda #0006
+				sta SMB_staging+SMB_header_size+9	; ??
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+11	; type of file
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+13	; file attributes
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+15	; file time (don't care, let server decide)
+				sta SMB_staging+SMB_header_size+17
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+19	; creation flags
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+21	; creation flags2?
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+23	; allocation size
+				sta SMB_staging+SMB_header_size+25	; allocation size
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+27	; reserved[0] must be zero
+				lda #0000
+				sta SMB_staging+SMB_header_size+31	; reserved[1] must be zero
+				
+				lda #0000
+				sta SMB_staging+SMB_header_size+35	; byte count
+				
+				lda #0004
+				sta SMB_staging+SMB_header_size+37	; BufferFormat (8-bit)
 
+				lda #0
+				sta SMB_tmp5					; initialize pointer
+				
+				; Target File
+				PushLong #SMB_tmp1						; source
+				pea #^SMB_staging							; destination
+				lda #SMB_staging+SMB_header_size+38
+				clc
+				adc SMB_tmp5
+				pha
+				jsr _strcpy
+				tya
+				clc
+				adc SMB_tmp5
+				sta SMB_tmp5
+
+				sta SMB_staging+SMB_header_size+35		; update byte count
+				
+				clc
+				adc #SMB_header_size+33
+				pha							; 'length' parameter for _SMB_Send
+				dec
+				dec
+				dec
+				dec
+				xba
+				sta SMB_staging+SMB_offset_tcplength+1			; save length for naked-TCP dgram
+
+				jsr _SMB_Send							; send our reply!
+				clc
 				rts
+
+* SMB_OpenFile_Poll - Call me until I tell you to stop, to receive and complete SMB Tree_ANDX
+* Arguments:
+*   SMB session handle (two words, on stack)
+* Things I return on stack:
+*   Setup status (word)
+*     $0000 - Setup proceeding
+*     $0001 - Setup finished
+*     $0002 - Setup failed
+*   Carry flag set means you can stop calling me
+SMB_OpenFile_Poll
+				plx							; our return address
+				PullLong SMB_sessid			; your smb sessid
+				phx
+
+				_TCPIPPoll
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushLong #statbuf
+				_TCPIPStatusTCP				; see if marinetti has anything for us
+				pla
+				cmp #terrNOCONNECTION
+				beq of_trampoline
+				cmp #terrBADIPID
+				beq of_trampoline
+				lda statbuf+8				; get recvq size, low word
+				cmp #0000					; yeah i know. for clarity.
+				beq op_trampoline			; poll us again later, marinetti got nothing
+
+				PushWord #0000				; space for result
+				ldy #SMB_sess_ipid-SMB_sess_begin
+				lda [SMB_sessid],y
+				pha							; push Marinetti IPID for this SMB_sessid
+				PushWord #0000				; bufftype: static pre-allocated buffer
+				PushLong #SMB_input			; where it's all goin
+				PushLong #SMB_max_net_read_size
+				PushLong #readbuf
+				_TCPIPReadTCP
+
+				pla
+				cmp #terrNOCONNECTION
+				beq of_trampoline
+				cmp #terrBADIPID
+				beq of_trampoline
+								
+				jsr _SMB_Check				; do basic check to make sure we received SMB data
+				bcs op_trampoline			; if not, wait for them to send again i guess
+
+				bra oft_far
+of_trampoline	jmp openx_failed
+op_trampoline	jmp openx_proceeding
+oft_far
+				lda SMB_input+SMB_offset_cmd
+				cmp #SMB_open_ANDX
+				bne op_trampoline			; punt if not setup_ANDX reply
+				
+				lda SMB_input+SMB_offset_eclass
+				cmp #0000
+				bne of_trampoline			; they returned an error, kbye
+				
+				lda SMB_input+SMB_header_size+5 ; saved returned sfid
+
+openx_finished	plx							; our return address
+				PushWord #0001				; finished!
+				phx
+				sec
+				rts
+
+openx_failed	plx							; our return address
+				PushWord #0002				; failure
+				phx
+				sec
+				rts
+
+openx_proceeding
+				plx							; our return address
+				PushWord #0000				; in progress
+				phx
+				clc
+				rts
+
 
 *
 * SMB_CloseFile - Close an open file on the remote share

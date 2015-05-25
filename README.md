@@ -1,6 +1,6 @@
 CIFS / SMB2 navel gazing, in 65816 assembly.
 
-5/24/2015 - Current status: Connects on port 445, completes Protocol Negotiation, successfully sends login (on Setup_ANDX message), obsolete LM (DES) style password. sends successful Tree_ANDX message, thus connecting to a remote share.
+5/24/2015 - Current status: Connects on port 445, completes Protocol Negotiation, successfully sends login (on Setup_ANDX message), obsolete LM (DES) style password. Sends successful Tree_ANDX message, thus connecting to a remote share. Sends Open_ANDX message message, opening a file.
 
 Build 'CMD.S' with Merlin32 and the included Library directory.
 
